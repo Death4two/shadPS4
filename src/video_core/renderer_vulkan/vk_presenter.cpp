@@ -132,16 +132,6 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     nis_settings.enable = Config::getNisEnabled();
     nis_settings.sharpness = static_cast<float>(Config::getNisSharpness() / 1000.f);
 
-<<<<<<< Updated upstream
-    xess_settings.enable = Config::getXeSSEnabled();
-    xess_settings.quality_mode =
-        static_cast<HostPasses::XeSSQualityMode>(Config::getXeSSQualityMode());
-
-    fsr_pass.Create(device, instance.GetAllocator(), num_images);
-    nis_pass.Create(device, instance.GetAllocator(), num_images);
-    xess_pass.Create(device, instance.GetAllocator(), instance.GetPhysicalDevice(),
-                     instance.GetInstance(), num_images);
-=======
     xess_settings.enable = Config::getXessEnabled();
     // Map config value (0-6) to XeSS quality mode enum (100-106)
     const int config_quality = Config::getXessQualityMode();
@@ -166,7 +156,6 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     nis_pass.Create(device, instance.GetAllocator(), num_images);
     xess_pass.Create(device, instance.GetAllocator(), instance.GetInstance(),
                      instance.GetPhysicalDevice(), num_images);
->>>>>>> Stashed changes
     pp_pass.Create(device, swapchain.GetSurfaceFormat().format);
 
     ImGui::Layer::AddLayer(Common::Singleton<Core::Devtools::Layer>::Instance());
@@ -375,16 +364,6 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     const vk::Extent2D image_size = {image.info.size.width, image.info.size.height};
     expected_ratio = static_cast<float>(image_size.width) / static_cast<float>(image_size.height);
 
-<<<<<<< Updated upstream
-    // Apply upscaling - use FSR, NIS, or XeSS (FSR takes priority, then XeSS, then NIS)
-    if (fsr_settings.enable) {
-        image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
-                                     fsr_settings, frame->is_hdr);
-    } else if (xess_settings.enable && xess_pass.IsAvailable()) {
-        image_view = xess_pass.Render(cmdbuf, image.GetImage(), image_view, view_info.format,
-                                      image_size, {frame->width, frame->height}, xess_settings,
-                                      0.016f);
-=======
     // Apply upscaling - use FSR, XeSS, or NIS (FSR takes priority, then XeSS, then NIS)
     if (fsr_settings.enable) {
         image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
@@ -392,7 +371,6 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     } else if (xess_settings.enable) {
         image_view = xess_pass.Render(cmdbuf, image_view, image.GetImage(), image_size,
                                       {frame->width, frame->height}, xess_settings, frame->is_hdr);
->>>>>>> Stashed changes
     } else if (nis_settings.enable) {
         image_view = nis_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
                                      nis_settings, frame->is_hdr);

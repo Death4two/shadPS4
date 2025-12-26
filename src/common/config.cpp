@@ -182,12 +182,10 @@ static ConfigEntry<bool> rcasEnabled(true);
 static ConfigEntry<int> rcasAttenuation(250);
 static ConfigEntry<bool> nisEnabled(false);
 static ConfigEntry<int> nisSharpness(500); // 0-1000, maps to 0.0-1.0
-static ConfigEntry<bool> xessEnabled(false);
-static ConfigEntry<int> xessQualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=UltraQuality, 5=UltraQualityPlus, 6=NativeAA
 
 // XeSS (Intel Xe Super Sampling)
 static ConfigEntry<bool> xessEnabled(false);
-static ConfigEntry<int> xessQualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=UltraQuality, 5=NativeAA
+static ConfigEntry<int> xessQualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=UltraQuality, 5=UltraQualityPlus, 6=NativeAA
 
 // FSR 2 Temporal Upscaling
 static ConfigEntry<bool> fsr2Enabled(false);
@@ -880,21 +878,20 @@ void setNisSharpness(int value, bool is_game_specific) {
     nisSharpness.set(value, is_game_specific);
 }
 
-<<<<<<< Updated upstream
 // XeSS (Intel Xe Super Sampling)
-bool getXeSSEnabled() {
+bool getXessEnabled() {
     return xessEnabled.get();
 }
 
-void setXeSSEnabled(bool enable, bool is_game_specific) {
+void setXessEnabled(bool enable, bool is_game_specific) {
     xessEnabled.set(enable, is_game_specific);
 }
 
-int getXeSSQualityMode() {
+int getXessQualityMode() {
     return xessQualityMode.get();
 }
 
-void setXeSSQualityMode(int mode, bool is_game_specific) {
+void setXessQualityMode(int mode, bool is_game_specific) {
     xessQualityMode.set(mode, is_game_specific);
 }
 
@@ -936,25 +933,6 @@ u32 getEffectiveInternalHeight() {
     }
     return internalScreenHeight.get();
 }
-
-=======
-bool getXessEnabled() {
-    return xessEnabled.get();
-}
-
-void setXessEnabled(bool enable, bool is_game_specific) {
-    xessEnabled.set(enable, is_game_specific);
-}
-
-int getXessQualityMode() {
-    return xessQualityMode.get();
-}
-
-void setXessQualityMode(int mode, bool is_game_specific) {
-    xessQualityMode.set(mode, is_game_specific);
-}
-
->>>>>>> Stashed changes
 // FSR 2 Temporal Upscaling
 bool getFsr2Enabled() {
     return fsr2Enabled.get();

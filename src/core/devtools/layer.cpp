@@ -136,37 +136,6 @@ void L::DrawMenuBar() {
                 ImGui::EndMenu();
             }
             if (BeginMenu("XeSS")) {
-<<<<<<< Updated upstream
-                auto& xess = presenter->GetXeSSSettingsRef();
-                Checkbox("XeSS Enabled", &xess.enable);
-                BeginDisabled(!xess.enable);
-                {
-                    static const char* quality_modes[] = {"Ultra Performance (3x)",
-                                                          "Performance (2x)",
-                                                          "Balanced (1.7x)",
-                                                          "Quality (1.5x)",
-                                                          "Ultra Quality (1.3x)",
-                                                          "Native AA (1x)"};
-                    int quality_mode = static_cast<int>(xess.quality_mode);
-                    if (Combo("Quality Mode", &quality_mode, quality_modes, 6)) {
-                        xess.quality_mode =
-                            static_cast<Vulkan::HostPasses::XeSSQualityMode>(quality_mode);
-                    }
-
-                    // Show calculated render resolution
-                    u32 render_w = Config::getEffectiveInternalWidth();
-                    u32 render_h = Config::getEffectiveInternalHeight();
-                    u32 output_w = Config::getWindowWidth();
-                    u32 output_h = Config::getWindowHeight();
-                    Text("Render: %ux%u -> Output: %ux%u", render_w, render_h, output_w, output_h);
-                    TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                                "Render resolution auto-adapts to quality mode");
-                    Separator();
-                    TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f),
-                                "Warning: XeSS requires motion vectors for best quality.");
-                    TextWrapped("Without motion vectors, movement may appear blurry. "
-                                "For better motion quality, consider using FSR or NIS instead.");
-=======
                 auto& xess = presenter->GetXessSettingsRef();
                 Checkbox("XeSS Enabled", &xess.enable);
                 BeginDisabled(!xess.enable);
@@ -180,26 +149,16 @@ void L::DrawMenuBar() {
                         xess.quality_mode = static_cast<Vulkan::HostPasses::XessPass::QualityMode>(
                             current_mode + 100);
                     }
->>>>>>> Stashed changes
                 }
                 EndDisabled();
 
                 if (Button("Save")) {
-<<<<<<< Updated upstream
-                    Config::setXeSSEnabled(xess.enable);
-                    Config::setXeSSQualityMode(static_cast<int>(xess.quality_mode));
-=======
                     Config::setXessEnabled(xess.enable);
                     Config::setXessQualityMode(static_cast<int>(xess.quality_mode) - 100);
->>>>>>> Stashed changes
                     Config::save(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
                                  "config.toml");
                     CloseCurrentPopup();
                 }
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
