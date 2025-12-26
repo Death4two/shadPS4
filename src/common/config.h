@@ -153,6 +153,10 @@ bool getNisEnabled();
 void setNisEnabled(bool enable, bool is_game_specific = false);
 int getNisSharpness();
 void setNisSharpness(int value, bool is_game_specific = false);
+bool getXessEnabled();
+void setXessEnabled(bool enable, bool is_game_specific = false);
+int getXessQualityMode();
+void setXessQualityMode(int mode, bool is_game_specific = false);
 
 // XeSS (Intel Xe Super Sampling)
 bool getXeSSEnabled();

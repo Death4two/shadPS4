@@ -6,6 +6,7 @@
 #include <fmt/ranges.h>
 
 #include "common/assert.h"
+#include "common/config.h"
 #include "common/debug.h"
 #include "common/types.h"
 #include "sdl_window.h"
@@ -14,6 +15,7 @@
 #include "video_core/renderer_vulkan/vk_platform.h"
 
 #include <vk_mem_alloc.h>
+#include <xess/xess_vk.h>
 
 namespace Vulkan {
 
@@ -336,6 +338,30 @@ bool Instance::CreateDevice() {
 
     supports_memory_budget = add_extension(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
 
+    // Query XeSS required device extensions (if XeSS is enabled)
+    std::vector<const char*> xess_device_extensions;
+    if (Config::getXessEnabled()) {
+        uint32_t xess_ext_count = 0;
+        const char* const* xess_exts = nullptr;
+        xess_result_t xess_result = xessVKGetRequiredDeviceExtensions(
+            static_cast<VkInstance>(*instance), static_cast<VkPhysicalDevice>(physical_device),
+            &xess_ext_count, &xess_exts);
+        if (xess_result == XESS_RESULT_SUCCESS && xess_ext_count > 0) {
+            for (uint32_t i = 0; i < xess_ext_count; ++i) {
+                if (add_extension(xess_exts[i])) {
+                    LOG_INFO(Render_Vulkan, "XeSS requires device extension: {}", xess_exts[i]);
+                } else {
+                    LOG_WARNING(Render_Vulkan,
+                                "XeSS required device extension {} is not available. XeSS may not work.",
+                                xess_exts[i]);
+                }
+            }
+        } else if (xess_result != XESS_RESULT_SUCCESS) {
+            LOG_WARNING(Render_Vulkan, "Failed to query XeSS device extensions: {}",
+                       static_cast<int>(xess_result));
+        }
+    }
+
     const auto family_properties = physical_device.getQueueFamilyProperties();
     if (family_properties.empty()) {
         LOG_CRITICAL(Render_Vulkan, "Physical device reported no queues.");
@@ -368,6 +394,22 @@ bool Instance::CreateDevice() {
     const auto vk11_features = feature_chain.get<vk::PhysicalDeviceVulkan11Features>();
     vk12_features = feature_chain.get<vk::PhysicalDeviceVulkan12Features>();
     const auto vk13_features = feature_chain.get<vk::PhysicalDeviceVulkan13Features>();
+
+    // Query XeSS required device features (if XeSS is enabled)
+    // Note: We pass nullptr to let XeSS create its own feature chain, which we'll merge
+    void* xess_features = nullptr;
+    if (Config::getXessEnabled()) {
+        xess_result_t xess_result = xessVKGetRequiredDeviceFeatures(
+            static_cast<VkInstance>(*instance), static_cast<VkPhysicalDevice>(physical_device),
+            &xess_features);
+        if (xess_result == XESS_RESULT_SUCCESS && xess_features != nullptr) {
+            LOG_INFO(Render_Vulkan, "XeSS requires additional device features");
+        } else if (xess_result != XESS_RESULT_SUCCESS) {
+            LOG_WARNING(Render_Vulkan, "Failed to query XeSS device features: {}",
+                       static_cast<int>(xess_result));
+        }
+    }
+
     vk::StructureChain device_chain = {
         vk::DeviceCreateInfo{
             .queueCreateInfoCount = 1u,
@@ -564,7 +606,25 @@ bool Instance::CreateDevice() {
         device_chain.unlink<vk::PhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR>();
     }
 
-    auto [device_result, dev] = physical_device.createDeviceUnique(device_chain.get());
+    // If XeSS features are required, we need to merge them into the pNext chain
+    auto [device_result, dev] = [&]() {
+        if (xess_features != nullptr) {
+            // XeSS features need to be added to the pNext chain
+            // Create a mutable copy of DeviceCreateInfo
+            vk::DeviceCreateInfo device_create_info = device_chain.get<vk::DeviceCreateInfo>();
+            // Link XeSS features to the existing chain
+            // XeSS features should point to the original pNext
+            VkBaseOutStructure* xess_struct = reinterpret_cast<VkBaseOutStructure*>(xess_features);
+            // Remove const qualifier first, then cast to VkBaseOutStructure*
+            void* mutable_pnext = const_cast<void*>(device_create_info.pNext);
+            xess_struct->pNext = reinterpret_cast<VkBaseOutStructure*>(mutable_pnext);
+            // Set device pNext to point to XeSS features (which now points to the rest of the chain)
+            device_create_info.pNext = xess_features;
+            return physical_device.createDeviceUnique(device_create_info);
+        } else {
+            return physical_device.createDeviceUnique(device_chain.get());
+        }
+    }();
     if (device_result != vk::Result::eSuccess) {
         LOG_CRITICAL(Render_Vulkan, "Failed to create device: {}", vk::to_string(device_result));
         return false;

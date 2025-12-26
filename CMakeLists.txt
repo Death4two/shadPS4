@@ -259,6 +259,7 @@ endif()
 
 add_subdirectory(externals)
 include_directories(src)
+include_directories(externals/xess/inc)
 
 set(AJM_LIB src/core/libraries/ajm/ajm.cpp
             src/core/libraries/ajm/ajm.h
@@ -1011,6 +1012,8 @@ set(VIDEO_CORE src/video_core/amdgpu/cb_db_extent.h
                src/video_core/renderer_vulkan/host_passes/fsr_pass.h
                src/video_core/renderer_vulkan/host_passes/nis_pass.cpp
                src/video_core/renderer_vulkan/host_passes/nis_pass.h
+               src/video_core/renderer_vulkan/host_passes/xess_pass.cpp
+               src/video_core/renderer_vulkan/host_passes/xess_pass.h
                src/video_core/renderer_vulkan/host_passes/pp_pass.cpp
                src/video_core/renderer_vulkan/host_passes/pp_pass.h
                src/video_core/renderer_vulkan/host_passes/xess_pass.cpp
@@ -1090,6 +1093,9 @@ create_target_directory_groups(shadps4)
 target_link_libraries(shadps4 PRIVATE magic_enum::magic_enum fmt::fmt toml11::toml11 tsl::robin_map xbyak::xbyak Tracy::TracyClient RenderDoc::API FFmpeg::ffmpeg Dear_ImGui gcn half::half ZLIB::ZLIB PNG::PNG)
 target_link_libraries(shadps4 PRIVATE Boost::headers GPUOpen::VulkanMemoryAllocator LibAtrac9 sirit Vulkan::Headers xxHash::xxhash Zydis::Zydis glslang::glslang SDL3::SDL3 SDL3_mixer::SDL3_mixer pugixml::pugixml)
 target_link_libraries(shadps4 PRIVATE stb::headers libusb::usb lfreist-hwinfo::hwinfo nlohmann_json::nlohmann_json miniz)
+if (WIN32)
+    target_link_libraries(shadps4 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/externals/xess/lib/libxess.lib)
+endif()
 
 # Intel XeSS (optional, Windows only)
 if (TARGET Intel::XeSS)

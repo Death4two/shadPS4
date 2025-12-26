@@ -182,6 +182,8 @@ static ConfigEntry<bool> rcasEnabled(true);
 static ConfigEntry<int> rcasAttenuation(250);
 static ConfigEntry<bool> nisEnabled(false);
 static ConfigEntry<int> nisSharpness(500); // 0-1000, maps to 0.0-1.0
+static ConfigEntry<bool> xessEnabled(false);
+static ConfigEntry<int> xessQualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=UltraQuality, 5=UltraQualityPlus, 6=NativeAA
 
 // XeSS (Intel Xe Super Sampling)
 static ConfigEntry<bool> xessEnabled(false);
@@ -878,6 +880,7 @@ void setNisSharpness(int value, bool is_game_specific) {
     nisSharpness.set(value, is_game_specific);
 }
 
+<<<<<<< Updated upstream
 // XeSS (Intel Xe Super Sampling)
 bool getXeSSEnabled() {
     return xessEnabled.get();
@@ -934,6 +937,24 @@ u32 getEffectiveInternalHeight() {
     return internalScreenHeight.get();
 }
 
+=======
+bool getXessEnabled() {
+    return xessEnabled.get();
+}
+
+void setXessEnabled(bool enable, bool is_game_specific) {
+    xessEnabled.set(enable, is_game_specific);
+}
+
+int getXessQualityMode() {
+    return xessQualityMode.get();
+}
+
+void setXessQualityMode(int mode, bool is_game_specific) {
+    xessQualityMode.set(mode, is_game_specific);
+}
+
+>>>>>>> Stashed changes
 // FSR 2 Temporal Upscaling
 bool getFsr2Enabled() {
     return fsr2Enabled.get();
@@ -1104,6 +1125,8 @@ void load(const std::filesystem::path& path, bool is_game_specific) {
         rcasAttenuation.setFromToml(gpu, "rcasAttenuation", is_game_specific);
         nisEnabled.setFromToml(gpu, "nisEnabled", is_game_specific);
         nisSharpness.setFromToml(gpu, "nisSharpness", is_game_specific);
+        xessEnabled.setFromToml(gpu, "xessEnabled", is_game_specific);
+        xessQualityMode.setFromToml(gpu, "xessQualityMode", is_game_specific);
 
         // XeSS (Intel Xe Super Sampling)
         xessEnabled.setFromToml(gpu, "xessEnabled", is_game_specific);
@@ -1434,6 +1457,8 @@ void setDefaultValues(bool is_game_specific) {
     rcasAttenuation.set(250, is_game_specific);
     nisEnabled.set(false, is_game_specific);
     nisSharpness.set(500, is_game_specific);
+    xessEnabled.set(false, is_game_specific);
+    xessQualityMode.set(2, is_game_specific);
 
     // GS - Vulkan
     gpuId.set(-1, is_game_specific);

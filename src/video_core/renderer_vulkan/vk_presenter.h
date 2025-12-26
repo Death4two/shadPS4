@@ -9,6 +9,7 @@
 #include "imgui/imgui_texture.h"
 #include "video_core/renderer_vulkan/host_passes/fsr_pass.h"
 #include "video_core/renderer_vulkan/host_passes/nis_pass.h"
+#include "video_core/renderer_vulkan/host_passes/xess_pass.h"
 #include "video_core/renderer_vulkan/host_passes/pp_pass.h"
 #include "video_core/renderer_vulkan/host_passes/xess_pass.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
@@ -66,7 +67,11 @@ public:
         return nis_settings;
     }
 
+<<<<<<< Updated upstream
     HostPasses::XeSSPass::Settings& GetXeSSSettingsRef() {
+=======
+    HostPasses::XessPass::Settings& GetXessSettingsRef() {
+>>>>>>> Stashed changes
         return xess_settings;
     }
 
@@ -126,8 +131,13 @@ private:
     HostPasses::FsrPass::Settings fsr_settings{};
     HostPasses::NisPass nis_pass;
     HostPasses::NisPass::Settings nis_settings{};
+<<<<<<< Updated upstream
     HostPasses::XeSSPass xess_pass;
     HostPasses::XeSSPass::Settings xess_settings{};
+=======
+    HostPasses::XessPass xess_pass;
+    HostPasses::XessPass::Settings xess_settings{};
+>>>>>>> Stashed changes
     HostPasses::PostProcessingPass::Settings pp_settings{};
     HostPasses::PostProcessingPass pp_pass;
     Frontend::WindowSDL& window;

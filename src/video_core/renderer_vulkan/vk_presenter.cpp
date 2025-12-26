@@ -16,6 +16,7 @@
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
 #include "video_core/texture_cache/image.h"
 
+#include <array>
 #include <imgui.h>
 #include <vk_mem_alloc.h>
 
@@ -131,6 +132,7 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     nis_settings.enable = Config::getNisEnabled();
     nis_settings.sharpness = static_cast<float>(Config::getNisSharpness() / 1000.f);
 
+<<<<<<< Updated upstream
     xess_settings.enable = Config::getXeSSEnabled();
     xess_settings.quality_mode =
         static_cast<HostPasses::XeSSQualityMode>(Config::getXeSSQualityMode());
@@ -139,6 +141,32 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     nis_pass.Create(device, instance.GetAllocator(), num_images);
     xess_pass.Create(device, instance.GetAllocator(), instance.GetPhysicalDevice(),
                      instance.GetInstance(), num_images);
+=======
+    xess_settings.enable = Config::getXessEnabled();
+    // Map config value (0-6) to XeSS quality mode enum (100-106)
+    const int config_quality = Config::getXessQualityMode();
+    constexpr HostPasses::XessPass::QualityMode quality_map[] = {
+        HostPasses::XessPass::QualityMode::UltraPerformance,  // 0
+        HostPasses::XessPass::QualityMode::Performance,       // 1
+        HostPasses::XessPass::QualityMode::Balanced,          // 2
+        HostPasses::XessPass::QualityMode::Quality,           // 3
+        HostPasses::XessPass::QualityMode::UltraQuality,      // 4
+        HostPasses::XessPass::QualityMode::UltraQualityPlus,  // 5
+        HostPasses::XessPass::QualityMode::NativeAA,         // 6
+    };
+    if (config_quality >= 0 && config_quality < static_cast<int>(std::size(quality_map))) {
+        xess_settings.quality_mode = quality_map[config_quality];
+    } else {
+        LOG_WARNING(Render_Vulkan, "Invalid XeSS quality mode from config: {}, using Balanced",
+                   config_quality);
+        xess_settings.quality_mode = HostPasses::XessPass::QualityMode::Balanced;
+    }
+
+    fsr_pass.Create(device, instance.GetAllocator(), num_images);
+    nis_pass.Create(device, instance.GetAllocator(), num_images);
+    xess_pass.Create(device, instance.GetAllocator(), instance.GetInstance(),
+                     instance.GetPhysicalDevice(), num_images);
+>>>>>>> Stashed changes
     pp_pass.Create(device, swapchain.GetSurfaceFormat().format);
 
     ImGui::Layer::AddLayer(Common::Singleton<Core::Devtools::Layer>::Instance());
@@ -147,6 +175,7 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
 Presenter::~Presenter() {
     ImGui::Layer::RemoveLayer(Common::Singleton<Core::Devtools::Layer>::Instance());
     draw_scheduler.Finish();
+    xess_pass.Destroy();
     const vk::Device device = instance.GetDevice();
     for (auto& frame : present_frames) {
         vmaDestroyImage(instance.GetAllocator(), frame.image, frame.allocation);
@@ -346,6 +375,7 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     const vk::Extent2D image_size = {image.info.size.width, image.info.size.height};
     expected_ratio = static_cast<float>(image_size.width) / static_cast<float>(image_size.height);
 
+<<<<<<< Updated upstream
     // Apply upscaling - use FSR, NIS, or XeSS (FSR takes priority, then XeSS, then NIS)
     if (fsr_settings.enable) {
         image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
@@ -354,6 +384,15 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
         image_view = xess_pass.Render(cmdbuf, image.GetImage(), image_view, view_info.format,
                                       image_size, {frame->width, frame->height}, xess_settings,
                                       0.016f);
+=======
+    // Apply upscaling - use FSR, XeSS, or NIS (FSR takes priority, then XeSS, then NIS)
+    if (fsr_settings.enable) {
+        image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
+                                     fsr_settings, frame->is_hdr);
+    } else if (xess_settings.enable) {
+        image_view = xess_pass.Render(cmdbuf, image_view, image.GetImage(), image_size,
+                                      {frame->width, frame->height}, xess_settings, frame->is_hdr);
+>>>>>>> Stashed changes
     } else if (nis_settings.enable) {
         image_view = nis_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
                                      nis_settings, frame->is_hdr);

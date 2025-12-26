@@ -23,6 +23,8 @@
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 
+#include <xess/xess_vk.h>
+
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
@@ -290,14 +292,51 @@ vk::UniqueInstance CreateInstance(Frontend::WindowSystemType window_type, bool e
                VK_VERSION_MAJOR(available_version), VK_VERSION_MINOR(available_version));
 
     const auto layers = GetInstanceLayers(enable_validation, enable_crash_diagnostic);
-    const auto extensions = GetLayerExtensions(GetInstanceExtensions(window_type, true), layers);
+    auto instance_extensions = GetInstanceExtensions(window_type, true);
+
+    // Query XeSS required instance extensions (if XeSS is available)
+    uint32_t xess_min_api_version = 0;
+    if (Config::getXessEnabled()) {
+        uint32_t xess_ext_count = 0;
+        const char* const* xess_exts = nullptr;
+        xess_result_t xess_result = xessVKGetRequiredInstanceExtensions(
+            &xess_ext_count, &xess_exts, &xess_min_api_version);
+        if (xess_result == XESS_RESULT_SUCCESS && xess_ext_count > 0) {
+            for (uint32_t i = 0; i < xess_ext_count; ++i) {
+                instance_extensions.push_back(xess_exts[i]);
+                LOG_INFO(Render_Vulkan, "XeSS requires instance extension: {}", xess_exts[i]);
+            }
+            LOG_INFO(Render_Vulkan, "XeSS requires Vulkan API version: {}.{}.{}",
+                     VK_VERSION_MAJOR(xess_min_api_version),
+                     VK_VERSION_MINOR(xess_min_api_version),
+                     VK_VERSION_PATCH(xess_min_api_version));
+        } else if (xess_result != XESS_RESULT_SUCCESS) {
+            LOG_WARNING(Render_Vulkan, "Failed to query XeSS instance extensions: {}",
+                       static_cast<int>(xess_result));
+        }
+    }
+
+    const auto extensions = GetLayerExtensions(std::move(instance_extensions), layers);
+
+    // Use XeSS minimum API version if it's higher than available
+    u32 api_version = available_version;
+    if (xess_min_api_version > 0 && xess_min_api_version > available_version) {
+        LOG_WARNING(Render_Vulkan,
+                    "XeSS requires Vulkan {}.{}.{} but only {}.{} is available. XeSS may not work.",
+                    VK_VERSION_MAJOR(xess_min_api_version), VK_VERSION_MINOR(xess_min_api_version),
+                    VK_VERSION_PATCH(xess_min_api_version), VK_VERSION_MAJOR(available_version),
+                    VK_VERSION_MINOR(available_version));
+    } else if (xess_min_api_version > 0) {
+        // Use the higher of the two versions
+        api_version = std::max(available_version, xess_min_api_version);
+    }
 
     const vk::ApplicationInfo application_info = {
         .pApplicationName = "shadPS4",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "shadPS4 Vulkan",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = available_version,
+        .apiVersion = api_version,
     };
 
     const std::string extensions_string = fmt::format("{}", fmt::join(extensions, ", "));

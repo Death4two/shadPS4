@@ -136,6 +136,7 @@ void L::DrawMenuBar() {
                 ImGui::EndMenu();
             }
             if (BeginMenu("XeSS")) {
+<<<<<<< Updated upstream
                 auto& xess = presenter->GetXeSSSettingsRef();
                 Checkbox("XeSS Enabled", &xess.enable);
                 BeginDisabled(!xess.enable);
@@ -165,17 +166,40 @@ void L::DrawMenuBar() {
                                 "Warning: XeSS requires motion vectors for best quality.");
                     TextWrapped("Without motion vectors, movement may appear blurry. "
                                 "For better motion quality, consider using FSR or NIS instead.");
+=======
+                auto& xess = presenter->GetXessSettingsRef();
+                Checkbox("XeSS Enabled", &xess.enable);
+                BeginDisabled(!xess.enable);
+                {
+                    const char* quality_modes[] = {"Ultra Performance", "Performance", "Balanced",
+                                                    "Quality",           "Ultra Quality",
+                                                    "Ultra Quality Plus", "Native AA"};
+                    int current_mode = static_cast<int>(xess.quality_mode) - 100; // XeSS enum starts at 100
+                    if (Combo("Quality Mode", &current_mode, quality_modes,
+                              IM_ARRAYSIZE(quality_modes))) {
+                        xess.quality_mode = static_cast<Vulkan::HostPasses::XessPass::QualityMode>(
+                            current_mode + 100);
+                    }
+>>>>>>> Stashed changes
                 }
                 EndDisabled();
 
                 if (Button("Save")) {
+<<<<<<< Updated upstream
                     Config::setXeSSEnabled(xess.enable);
                     Config::setXeSSQualityMode(static_cast<int>(xess.quality_mode));
+=======
+                    Config::setXessEnabled(xess.enable);
+                    Config::setXessQualityMode(static_cast<int>(xess.quality_mode) - 100);
+>>>>>>> Stashed changes
                     Config::save(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
                                  "config.toml");
                     CloseCurrentPopup();
                 }
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
