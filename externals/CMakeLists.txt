@@ -264,3 +264,18 @@ add_subdirectory(json)
 
 # miniz
 add_subdirectory(miniz)
+
+# Intel XeSS SDK
+if (WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/xess/inc/xess/xess.h")
+    add_library(xess INTERFACE)
+    target_include_directories(xess INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/xess/inc")
+    target_link_libraries(xess INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/xess/lib/libxess.lib")
+    target_compile_definitions(xess INTERFACE XESS_AVAILABLE=1)
+    add_library(Intel::XeSS ALIAS xess)
+    
+    # Copy XeSS DLL to output directory during build
+    set(XESS_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/xess/bin/libxess.dll" CACHE INTERNAL "")
+    message(STATUS "Intel XeSS SDK found")
+else()
+    message(STATUS "Intel XeSS SDK not found (Windows only, or SDK not extracted)")
+endif()

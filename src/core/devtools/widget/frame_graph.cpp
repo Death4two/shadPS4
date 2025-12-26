@@ -102,6 +102,7 @@ void FrameGraph::Draw() {
              DebugState.output_resolution.second);
         Text("FSR: %s", DebugState.is_using_fsr ? "on" : "off");
         Text("NIS: %s", DebugState.is_using_nis ? "on" : "off");
+        Text("XeSS: %s", DebugState.is_using_xess ? "on" : "off");
     }
     End();
 }

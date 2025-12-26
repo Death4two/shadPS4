@@ -183,6 +183,10 @@ static ConfigEntry<int> rcasAttenuation(250);
 static ConfigEntry<bool> nisEnabled(false);
 static ConfigEntry<int> nisSharpness(500); // 0-1000, maps to 0.0-1.0
 
+// XeSS (Intel Xe Super Sampling)
+static ConfigEntry<bool> xessEnabled(false);
+static ConfigEntry<int> xessQualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=UltraQuality, 5=NativeAA
+
 // FSR 2 Temporal Upscaling
 static ConfigEntry<bool> fsr2Enabled(false);
 static ConfigEntry<int> fsr2QualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=NativeAA
@@ -874,6 +878,62 @@ void setNisSharpness(int value, bool is_game_specific) {
     nisSharpness.set(value, is_game_specific);
 }
 
+// XeSS (Intel Xe Super Sampling)
+bool getXeSSEnabled() {
+    return xessEnabled.get();
+}
+
+void setXeSSEnabled(bool enable, bool is_game_specific) {
+    xessEnabled.set(enable, is_game_specific);
+}
+
+int getXeSSQualityMode() {
+    return xessQualityMode.get();
+}
+
+void setXeSSQualityMode(int mode, bool is_game_specific) {
+    xessQualityMode.set(mode, is_game_specific);
+}
+
+// Helper to get XeSS scale factor from quality mode
+static float getXeSSScaleFactor(int mode) {
+    switch (mode) {
+    case 0: // Ultra Performance
+        return 3.0f;
+    case 1: // Performance
+        return 2.0f;
+    case 2: // Balanced
+        return 1.7f;
+    case 3: // Quality
+        return 1.5f;
+    case 4: // Ultra Quality
+        return 1.3f;
+    case 5: // Native AA
+    default:
+        return 1.0f;
+    }
+}
+
+u32 getEffectiveInternalWidth() {
+    if (xessEnabled.get()) {
+        // Calculate render width based on window size and XeSS quality mode
+        const float scale = getXeSSScaleFactor(xessQualityMode.get());
+        const u32 output_width = windowWidth.get();
+        return static_cast<u32>(output_width / scale);
+    }
+    return internalScreenWidth.get();
+}
+
+u32 getEffectiveInternalHeight() {
+    if (xessEnabled.get()) {
+        // Calculate render height based on window size and XeSS quality mode
+        const float scale = getXeSSScaleFactor(xessQualityMode.get());
+        const u32 output_height = windowHeight.get();
+        return static_cast<u32>(output_height / scale);
+    }
+    return internalScreenHeight.get();
+}
+
 // FSR 2 Temporal Upscaling
 bool getFsr2Enabled() {
     return fsr2Enabled.get();
@@ -1044,6 +1104,10 @@ void load(const std::filesystem::path& path, bool is_game_specific) {
         rcasAttenuation.setFromToml(gpu, "rcasAttenuation", is_game_specific);
         nisEnabled.setFromToml(gpu, "nisEnabled", is_game_specific);
         nisSharpness.setFromToml(gpu, "nisSharpness", is_game_specific);
+
+        // XeSS (Intel Xe Super Sampling)
+        xessEnabled.setFromToml(gpu, "xessEnabled", is_game_specific);
+        xessQualityMode.setFromToml(gpu, "xessQualityMode", is_game_specific);
 
         // FSR 2 Temporal Upscaling
         fsr2Enabled.setFromToml(gpu, "fsr2Enabled", is_game_specific);
@@ -1233,6 +1297,8 @@ void save(const std::filesystem::path& path, bool is_game_specific) {
     rcasAttenuation.setTomlValue(data, "GPU", "rcasAttenuation", is_game_specific);
     nisEnabled.setTomlValue(data, "GPU", "nisEnabled", is_game_specific);
     nisSharpness.setTomlValue(data, "GPU", "nisSharpness", is_game_specific);
+    xessEnabled.setTomlValue(data, "GPU", "xessEnabled", is_game_specific);
+    xessQualityMode.setTomlValue(data, "GPU", "xessQualityMode", is_game_specific);
     directMemoryAccessEnabled.setTomlValue(data, "GPU", "directMemoryAccess", is_game_specific);
 
     gpuId.setTomlValue(data, "Vulkan", "gpuId", is_game_specific);

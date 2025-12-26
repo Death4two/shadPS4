@@ -10,6 +10,7 @@
 #include "video_core/renderer_vulkan/host_passes/fsr_pass.h"
 #include "video_core/renderer_vulkan/host_passes/nis_pass.h"
 #include "video_core/renderer_vulkan/host_passes/pp_pass.h"
+#include "video_core/renderer_vulkan/host_passes/xess_pass.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_swapchain.h"
@@ -63,6 +64,10 @@ public:
 
     HostPasses::NisPass::Settings& GetNisSettingsRef() {
         return nis_settings;
+    }
+
+    HostPasses::XeSSPass::Settings& GetXeSSSettingsRef() {
+        return xess_settings;
     }
 
     Frontend::WindowSDL& GetWindow() const {
@@ -121,6 +126,8 @@ private:
     HostPasses::FsrPass::Settings fsr_settings{};
     HostPasses::NisPass nis_pass;
     HostPasses::NisPass::Settings nis_settings{};
+    HostPasses::XeSSPass xess_pass;
+    HostPasses::XeSSPass::Settings xess_settings{};
     HostPasses::PostProcessingPass::Settings pp_settings{};
     HostPasses::PostProcessingPass pp_pass;
     Frontend::WindowSDL& window;

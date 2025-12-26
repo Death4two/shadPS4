@@ -154,6 +154,17 @@ void setNisEnabled(bool enable, bool is_game_specific = false);
 int getNisSharpness();
 void setNisSharpness(int value, bool is_game_specific = false);
 
+// XeSS (Intel Xe Super Sampling)
+bool getXeSSEnabled();
+void setXeSSEnabled(bool enable, bool is_game_specific = false);
+int getXeSSQualityMode();
+void setXeSSQualityMode(int mode, bool is_game_specific = false);
+
+// Get effective internal resolution (considers XeSS quality mode if enabled)
+// Returns the render resolution that should be used based on XeSS settings
+u32 getEffectiveInternalWidth();
+u32 getEffectiveInternalHeight();
+
 // FSR 2 Temporal Upscaling
 bool getFsr2Enabled();
 void setFsr2Enabled(bool enable, bool is_game_specific = false);
