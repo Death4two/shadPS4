@@ -116,6 +116,25 @@ void L::DrawMenuBar() {
 
                 ImGui::EndMenu();
             }
+            if (BeginMenu("NIS")) {
+                auto& nis = presenter->GetNisSettingsRef();
+                Checkbox("NIS Enabled", &nis.enable);
+                BeginDisabled(!nis.enable);
+                {
+                    SliderFloat("Sharpness", &nis.sharpness, 0.0f, 1.0f);
+                }
+                EndDisabled();
+
+                if (Button("Save")) {
+                    Config::setNisEnabled(nis.enable);
+                    Config::setNisSharpness(static_cast<int>(nis.sharpness * 1000));
+                    Config::save(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                 "config.toml");
+                    CloseCurrentPopup();
+                }
+
+                ImGui::EndMenu();
+            }
             ImGui::EndMenu();
         }
         if (BeginMenu("Debug")) {

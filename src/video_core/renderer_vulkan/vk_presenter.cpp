@@ -128,7 +128,11 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     fsr_settings.use_rcas = Config::getRcasEnabled();
     fsr_settings.rcas_attenuation = static_cast<float>(Config::getRcasAttenuation() / 1000.f);
 
+    nis_settings.enable = Config::getNisEnabled();
+    nis_settings.sharpness = static_cast<float>(Config::getNisSharpness() / 1000.f);
+
     fsr_pass.Create(device, instance.GetAllocator(), num_images);
+    nis_pass.Create(device, instance.GetAllocator(), num_images);
     pp_pass.Create(device, swapchain.GetSurfaceFormat().format);
 
     ImGui::Layer::AddLayer(Common::Singleton<Core::Devtools::Layer>::Instance());
@@ -336,8 +340,14 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     const vk::Extent2D image_size = {image.info.size.width, image.info.size.height};
     expected_ratio = static_cast<float>(image_size.width) / static_cast<float>(image_size.height);
 
-    image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
-                                 fsr_settings, frame->is_hdr);
+    // Apply upscaling - use either FSR or NIS (FSR takes priority if both enabled)
+    if (fsr_settings.enable) {
+        image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
+                                     fsr_settings, frame->is_hdr);
+    } else if (nis_settings.enable) {
+        image_view = nis_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
+                                     nis_settings, frame->is_hdr);
+    }
     pp_pass.Render(cmdbuf, image_view, image_size, *frame, pp_settings);
 
     DebugState.game_resolution = {image_size.width, image_size.height};

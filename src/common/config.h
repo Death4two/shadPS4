@@ -149,6 +149,31 @@ bool getRcasEnabled();
 void setRcasEnabled(bool enable, bool is_game_specific = false);
 int getRcasAttenuation();
 void setRcasAttenuation(int value, bool is_game_specific = false);
+bool getNisEnabled();
+void setNisEnabled(bool enable, bool is_game_specific = false);
+int getNisSharpness();
+void setNisSharpness(int value, bool is_game_specific = false);
+
+// FSR 2 Temporal Upscaling
+bool getFsr2Enabled();
+void setFsr2Enabled(bool enable, bool is_game_specific = false);
+int getFsr2QualityMode();
+void setFsr2QualityMode(int mode, bool is_game_specific = false);
+int getFsr2Sharpness();
+void setFsr2Sharpness(int value, bool is_game_specific = false);
+
+// Optical Flow (for FSR 2 motion vectors)
+bool getOpticalFlowEnabled();
+void setOpticalFlowEnabled(bool enable, bool is_game_specific = false);
+
+// Depth Estimation (for FSR 2)
+bool getDepthEstimationEnabled();
+void setDepthEstimationEnabled(bool enable, bool is_game_specific = false);
+int getDepthEstimationModel();
+void setDepthEstimationModel(int model, bool is_game_specific = false);
+bool getDepthEstimationAsync();
+void setDepthEstimationAsync(bool enable, bool is_game_specific = false);
+
 bool getIsConnectedToNetwork();
 void setConnectedToNetwork(bool enable, bool is_game_specific = false);
 void setUserName(const std::string& name, bool is_game_specific = false);

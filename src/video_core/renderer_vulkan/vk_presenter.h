@@ -8,6 +8,7 @@
 #include "core/libraries/videoout/buffer.h"
 #include "imgui/imgui_texture.h"
 #include "video_core/renderer_vulkan/host_passes/fsr_pass.h"
+#include "video_core/renderer_vulkan/host_passes/nis_pass.h"
 #include "video_core/renderer_vulkan/host_passes/pp_pass.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
@@ -58,6 +59,10 @@ public:
 
     HostPasses::FsrPass::Settings& GetFsrSettingsRef() {
         return fsr_settings;
+    }
+
+    HostPasses::NisPass::Settings& GetNisSettingsRef() {
+        return nis_settings;
     }
 
     Frontend::WindowSDL& GetWindow() const {
@@ -114,6 +119,8 @@ private:
 
     HostPasses::FsrPass fsr_pass;
     HostPasses::FsrPass::Settings fsr_settings{};
+    HostPasses::NisPass nis_pass;
+    HostPasses::NisPass::Settings nis_settings{};
     HostPasses::PostProcessingPass::Settings pp_settings{};
     HostPasses::PostProcessingPass pp_pass;
     Frontend::WindowSDL& window;

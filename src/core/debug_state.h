@@ -163,6 +163,7 @@ public:
     std::pair<u32, u32> game_resolution{};
     std::pair<u32, u32> output_resolution{};
     bool is_using_fsr{};
+    bool is_using_nis{};
 
     void ShowDebugMessage(std::string message) {
         if (message.empty()) {

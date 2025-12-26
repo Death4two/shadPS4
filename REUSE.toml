@@ -130,3 +130,8 @@ SPDX-License-Identifier = "MIT"
 path = "src/video_core/host_shaders/fsr/*"
 SPDX-FileCopyrightText = "Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved."
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "src/video_core/host_shaders/nis/*"
+SPDX-FileCopyrightText = "Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+SPDX-License-Identifier = "MIT"

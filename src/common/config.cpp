@@ -180,6 +180,21 @@ static ConfigEntry<bool> isHDRAllowed(false);
 static ConfigEntry<bool> fsrEnabled(false);
 static ConfigEntry<bool> rcasEnabled(true);
 static ConfigEntry<int> rcasAttenuation(250);
+static ConfigEntry<bool> nisEnabled(false);
+static ConfigEntry<int> nisSharpness(500); // 0-1000, maps to 0.0-1.0
+
+// FSR 2 Temporal Upscaling
+static ConfigEntry<bool> fsr2Enabled(false);
+static ConfigEntry<int> fsr2QualityMode(2); // 0=UltraPerf, 1=Perf, 2=Balanced, 3=Quality, 4=NativeAA
+static ConfigEntry<int> fsr2Sharpness(500); // 0-1000, maps to 0.0-1.0
+
+// Optical Flow (for FSR 2)
+static ConfigEntry<bool> opticalFlowEnabled(true);
+
+// Depth Estimation (for FSR 2)
+static ConfigEntry<bool> depthEstimationEnabled(true);
+static ConfigEntry<int> depthEstimationModel(1); // 0=Small, 1=Base, 2=Large
+static ConfigEntry<bool> depthEstimationAsync(true);
 
 // Vulkan
 static ConfigEntry<s32> gpuId(-1);
@@ -843,6 +858,81 @@ int getRcasAttenuation() {
     return rcasAttenuation.get();
 }
 
+bool getNisEnabled() {
+    return nisEnabled.get();
+}
+
+void setNisEnabled(bool enable, bool is_game_specific) {
+    nisEnabled.set(enable, is_game_specific);
+}
+
+int getNisSharpness() {
+    return nisSharpness.get();
+}
+
+void setNisSharpness(int value, bool is_game_specific) {
+    nisSharpness.set(value, is_game_specific);
+}
+
+// FSR 2 Temporal Upscaling
+bool getFsr2Enabled() {
+    return fsr2Enabled.get();
+}
+
+void setFsr2Enabled(bool enable, bool is_game_specific) {
+    fsr2Enabled.set(enable, is_game_specific);
+}
+
+int getFsr2QualityMode() {
+    return fsr2QualityMode.get();
+}
+
+void setFsr2QualityMode(int mode, bool is_game_specific) {
+    fsr2QualityMode.set(mode, is_game_specific);
+}
+
+int getFsr2Sharpness() {
+    return fsr2Sharpness.get();
+}
+
+void setFsr2Sharpness(int value, bool is_game_specific) {
+    fsr2Sharpness.set(value, is_game_specific);
+}
+
+// Optical Flow
+bool getOpticalFlowEnabled() {
+    return opticalFlowEnabled.get();
+}
+
+void setOpticalFlowEnabled(bool enable, bool is_game_specific) {
+    opticalFlowEnabled.set(enable, is_game_specific);
+}
+
+// Depth Estimation
+bool getDepthEstimationEnabled() {
+    return depthEstimationEnabled.get();
+}
+
+void setDepthEstimationEnabled(bool enable, bool is_game_specific) {
+    depthEstimationEnabled.set(enable, is_game_specific);
+}
+
+int getDepthEstimationModel() {
+    return depthEstimationModel.get();
+}
+
+void setDepthEstimationModel(int model, bool is_game_specific) {
+    depthEstimationModel.set(model, is_game_specific);
+}
+
+bool getDepthEstimationAsync() {
+    return depthEstimationAsync.get();
+}
+
+void setDepthEstimationAsync(bool enable, bool is_game_specific) {
+    depthEstimationAsync.set(enable, is_game_specific);
+}
+
 void setRcasAttenuation(int value, bool is_game_specific) {
     rcasAttenuation.set(value, is_game_specific);
 }
@@ -952,6 +1042,21 @@ void load(const std::filesystem::path& path, bool is_game_specific) {
         fsrEnabled.setFromToml(gpu, "fsrEnabled", is_game_specific);
         rcasEnabled.setFromToml(gpu, "rcasEnabled", is_game_specific);
         rcasAttenuation.setFromToml(gpu, "rcasAttenuation", is_game_specific);
+        nisEnabled.setFromToml(gpu, "nisEnabled", is_game_specific);
+        nisSharpness.setFromToml(gpu, "nisSharpness", is_game_specific);
+
+        // FSR 2 Temporal Upscaling
+        fsr2Enabled.setFromToml(gpu, "fsr2Enabled", is_game_specific);
+        fsr2QualityMode.setFromToml(gpu, "fsr2QualityMode", is_game_specific);
+        fsr2Sharpness.setFromToml(gpu, "fsr2Sharpness", is_game_specific);
+
+        // Optical Flow
+        opticalFlowEnabled.setFromToml(gpu, "opticalFlowEnabled", is_game_specific);
+
+        // Depth Estimation
+        depthEstimationEnabled.setFromToml(gpu, "depthEstimationEnabled", is_game_specific);
+        depthEstimationModel.setFromToml(gpu, "depthEstimationModel", is_game_specific);
+        depthEstimationAsync.setFromToml(gpu, "depthEstimationAsync", is_game_specific);
     }
 
     if (data.contains("Vulkan")) {
@@ -1126,6 +1231,8 @@ void save(const std::filesystem::path& path, bool is_game_specific) {
     fsrEnabled.setTomlValue(data, "GPU", "fsrEnabled", is_game_specific);
     rcasEnabled.setTomlValue(data, "GPU", "rcasEnabled", is_game_specific);
     rcasAttenuation.setTomlValue(data, "GPU", "rcasAttenuation", is_game_specific);
+    nisEnabled.setTomlValue(data, "GPU", "nisEnabled", is_game_specific);
+    nisSharpness.setTomlValue(data, "GPU", "nisSharpness", is_game_specific);
     directMemoryAccessEnabled.setTomlValue(data, "GPU", "directMemoryAccess", is_game_specific);
 
     gpuId.setTomlValue(data, "Vulkan", "gpuId", is_game_specific);
@@ -1259,6 +1366,8 @@ void setDefaultValues(bool is_game_specific) {
     fsrEnabled.set(true, is_game_specific);
     rcasEnabled.set(true, is_game_specific);
     rcasAttenuation.set(250, is_game_specific);
+    nisEnabled.set(false, is_game_specific);
+    nisSharpness.set(500, is_game_specific);
 
     // GS - Vulkan
     gpuId.set(-1, is_game_specific);

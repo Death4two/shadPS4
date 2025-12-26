@@ -16,6 +16,7 @@ set(SHADER_FILES
     fault_buffer_process.comp
     fs_tri.vert
     fsr.comp
+    nis.comp
     post_process.frag
     tiling.comp
 )
