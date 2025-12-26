@@ -665,8 +665,23 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
 
     for (const auto& image_desc : stage.images) {
         const auto tsharp = image_desc.GetSharp(stage);
-        if (texture_cache.IsMeta(tsharp.Address())) {
-            LOG_WARNING(Render_Vulkan, "Unexpected metadata read by a shader (texture)");
+        if (const auto meta_type = texture_cache.GetMetaType(tsharp.Address())) {
+            const char* meta_name = "Unknown";
+            switch (*meta_type) {
+            case VideoCore::TextureCache::MetaDataInfo::Type::CMask:
+                meta_name = "CMask";
+                break;
+            case VideoCore::TextureCache::MetaDataInfo::Type::FMask:
+                meta_name = "FMask";
+                break;
+            case VideoCore::TextureCache::MetaDataInfo::Type::HTile:
+                meta_name = "HTile";
+                break;
+            }
+            LOG_DEBUG(Render_Vulkan,
+                      "Shader reading {} metadata surface as texture (address: 0x{:X}) - this is "
+                      "unusual but may be intentional",
+                      meta_name, tsharp.Address());
         }
 
         if (tsharp.GetDataFmt() == AmdGpu::DataFormat::FormatInvalid) {

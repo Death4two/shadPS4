@@ -5,6 +5,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <unordered_set>
 #include <boost/container/small_vector.hpp>
@@ -155,6 +156,15 @@ public:
     /// Returns true if the specified address is a metadata surface.
     bool IsMeta(VAddr address) const {
         return surface_metas.contains(address);
+    }
+
+    /// Returns the metadata type if the address is a metadata surface, otherwise returns nullopt.
+    std::optional<MetaDataInfo::Type> GetMetaType(VAddr address) const {
+        const auto it = surface_metas.find(address);
+        if (it != surface_metas.end()) {
+            return it->second.type;
+        }
+        return std::nullopt;
     }
 
     /// Returns true if a slice of the specified metadata surface has been cleared.
