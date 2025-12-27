@@ -48,6 +48,16 @@ class TextureCache {
     using PageTable = MultiLevelPageTable<Traits>;
 
 public:
+    // MetaDataInfo struct definition (needed before GetMetaType method)
+    struct MetaDataInfo {
+        enum class Type {
+            CMask,
+            FMask,
+            HTile,
+        };
+        Type type;
+        s32 clear_mask = -1;
+    };
     enum class BindingType : u32 {
         Texture,
         Storage,
@@ -324,15 +334,6 @@ private:
     Common::LeastRecentlyUsedCache<ImageId, u64> lru_cache;
     PageTable page_table;
     std::mutex mutex;
-    struct MetaDataInfo {
-        enum class Type {
-            CMask,
-            FMask,
-            HTile,
-        };
-        Type type;
-        s32 clear_mask = -1;
-    };
     tsl::robin_map<VAddr, MetaDataInfo> surface_metas;
 };
 

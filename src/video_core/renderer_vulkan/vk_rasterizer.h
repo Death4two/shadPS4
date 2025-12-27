@@ -73,6 +73,10 @@ public:
         return pipeline_cache;
     }
 
+    // Set XeSS jitter for projection matrix application
+    // Jitter values should be in [-0.5, 0.5] range as provided by XessPass
+    void SetXessJitter(float jitter_x, float jitter_y, u32 input_width, u32 input_height);
+
     template <typename Func>
     void ForEachMappedRangeInRange(VAddr addr, u64 size, Func&& func) {
         const auto range = decltype(mapped_ranges)::interval_type::right_open(addr, addr + size);
@@ -145,6 +149,13 @@ private:
     boost::container::static_vector<ImageBindingInfo, Shader::NUM_IMAGES> image_bindings;
     bool fault_process_pending{};
     bool attachment_feedback_loop{};
+
+    // XeSS jitter state for projection matrix application
+    bool xess_jitter_enabled{false};
+    float xess_jitter_x{0.0f};
+    float xess_jitter_y{0.0f};
+    u32 xess_input_width{0};
+    u32 xess_input_height{0};
 };
 
 } // namespace Vulkan

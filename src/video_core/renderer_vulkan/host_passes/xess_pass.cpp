@@ -37,7 +37,13 @@ std::vector<std::pair<float, float>> GenerateHalton(u32 base1, u32 base2, u32 st
     result.reserve(count);
 
     for (u32 a = start_index; a < count + start_index; ++a) {
-        result.emplace_back(GetCorput(a, base1) + offset1, GetCorput(a, base2) + offset2);
+        // GetCorput returns [0, 1), so with -0.5 offset we get [-0.5, 0.5)
+        // Clamp to ensure we stay in [-0.5, 0.5] range as required by XeSS
+        float halton_x = GetCorput(a, base1) + offset1;
+        float halton_y = GetCorput(a, base2) + offset2;
+        halton_x = std::clamp(halton_x, -0.5f, 0.5f);
+        halton_y = std::clamp(halton_y, -0.5f, 0.5f);
+        result.emplace_back(halton_x, halton_y);
     }
     return result;
 }
@@ -52,7 +58,11 @@ void XessPass::Create(vk::Device device, VmaAllocator allocator, vk::Instance in
     this->num_images = num_images;
 
     // Generate Halton sequence for jitter (using bases 2 and 3, as recommended)
+    // The sequence is stateful - jitter_index tracks the current position
+    // IMPORTANT: jitter_index must increment exactly once per frame to maintain temporal coherence
+    // Do not reset jitter_index unless explicitly intended (e.g., on XeSS reinitialization)
     halton_sequence = GenerateHalton(2, 3, 1, kJitterSequenceLength);
+    jitter_index = 0; // Start at first element of sequence
 
     available_imgs.resize(num_images);
     for (u32 i = 0; i < num_images; ++i) {
@@ -68,6 +78,8 @@ void XessPass::Destroy() {
         xess_context = nullptr;
     }
     xess_initialized = false;
+    // Note: We don't reset jitter_index here - if XeSS is recreated, it will start fresh
+    // This is fine as XeSS history is also reset on recreation
 }
 
 void XessPass::CreateDummyTextures(vk::CommandBuffer cmdbuf) {
@@ -198,6 +210,9 @@ void XessPass::InitializeXess(vk::Extent2D output_size, Settings settings) {
                   output_size.height);
         return;
     }
+    
+    // Note: We don't reset jitter_index on reinitialization to maintain temporal coherence
+    // If resolution changes, XeSS will handle history internally
 
     // Destroy old context if it exists
     if (xess_context) {
@@ -264,6 +279,9 @@ void XessPass::InitializeXess(vk::Extent2D output_size, Settings settings) {
 
     // Set velocity scale to 0.0 to minimize impact of zero motion vectors
     // This helps prevent artifacts when using dummy motion vectors
+    // Note: Motion vectors are dummy (all zeros), so they don't include jitter-induced motion.
+    // This is correct - XeSS expects motion vectors without jitter compensation per documentation:
+    // "Motion vectors do not include motion induced by the camera jitter"
     xessSetVelocityScale(xess_context, 0.0f, 0.0f);
 
     xess_initialized = true;
@@ -278,8 +296,9 @@ void XessPass::GetJitterOffset(float& jitter_x, float& jitter_y, u32 width, u32 
     }
 
     const auto& [halton_x, halton_y] = halton_sequence[jitter_index % halton_sequence.size()];
-    jitter_x = halton_x;
-    jitter_y = halton_y;
+    // Ensure jitter stays in [-0.5, 0.5] range as required by XeSS
+    jitter_x = std::clamp(halton_x, -0.5f, 0.5f);
+    jitter_y = std::clamp(halton_y, -0.5f, 0.5f);
     jitter_index = (jitter_index + 1) % halton_sequence.size();
 }
 
@@ -387,6 +406,9 @@ vk::ImageView XessPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input, vk
         .layerCount = 1,
     };
 
+    // Pass the same jitter values used for projection matrix to XeSS API
+    // These are in [-0.5, 0.5] range and match the jitter applied during rendering
+    // No additional scaling needed - jitter values are already in the correct units
     exec_params.jitterOffsetX = jitter_x;
     exec_params.jitterOffsetY = jitter_y;
     exec_params.exposureScale = 1.0f;
@@ -452,6 +474,23 @@ vk::ImageView XessPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input, vk
     }
 
     return img.output_image_view.get();
+}
+
+void XessPass::GetCurrentJitter(float& jitter_x, float& jitter_y, u32 input_width,
+                                 u32 input_height) const {
+    // Get jitter without advancing the index (peek at current jitter)
+    // This allows us to use the same jitter for both projection matrix and XeSS
+    if (halton_sequence.empty()) {
+        jitter_x = 0.0f;
+        jitter_y = 0.0f;
+        return;
+    }
+
+    const auto& [halton_x, halton_y] = halton_sequence[jitter_index % halton_sequence.size()];
+    // Ensure jitter stays in [-0.5, 0.5] range as required by XeSS
+    jitter_x = std::clamp(halton_x, -0.5f, 0.5f);
+    jitter_y = std::clamp(halton_y, -0.5f, 0.5f);
+    // Note: We don't advance jitter_index here - that happens in GetJitterOffset() called by Render()
 }
 
 void XessPass::ResizeAndInvalidate(u32 width, u32 height) {

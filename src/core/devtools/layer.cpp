@@ -138,23 +138,21 @@ void L::DrawMenuBar() {
             if (BeginMenu("XeSS")) {
                 auto& xess = presenter->GetXessSettingsRef();
                 Checkbox("XeSS Enabled", &xess.enable);
-                BeginDisabled(!xess.enable);
-                {
-                    const char* quality_modes[] = {"Ultra Performance", "Performance", "Balanced",
-                                                    "Quality",           "Ultra Quality",
-                                                    "Ultra Quality Plus", "Native AA"};
-                    int current_mode = static_cast<int>(xess.quality_mode) - 100; // XeSS enum starts at 100
-                    if (Combo("Quality Mode", &current_mode, quality_modes,
-                              IM_ARRAYSIZE(quality_modes))) {
-                        xess.quality_mode = static_cast<Vulkan::HostPasses::XessPass::QualityMode>(
-                            current_mode + 100);
-                    }
+                
+                if (xess.enable) {
+                    Spacing();
+                    PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f)); // Yellow/orange warning color
+                    // Use a fixed reasonable width to prevent menu height calculation issues
+                    PushTextWrapPos(GetCursorPosX() + 450.0f);
+                    Text("Warning: XeSS may produce artifacts due to missing motion vectors.");
+                    Text("Motion vectors are not available from PS4 games, so XeSS uses dummy vectors.");
+                    PopTextWrapPos();
+                    PopStyleColor();
+                    Spacing();
                 }
-                EndDisabled();
 
                 if (Button("Save")) {
                     Config::setXessEnabled(xess.enable);
-                    Config::setXessQualityMode(static_cast<int>(xess.quality_mode) - 100);
                     Config::save(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
                                  "config.toml");
                     CloseCurrentPopup();

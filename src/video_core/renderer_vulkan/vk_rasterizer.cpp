@@ -20,7 +20,9 @@
 
 namespace Vulkan {
 
-static Shader::PushData MakeUserData(const AmdGpu::Regs& regs) {
+static Shader::PushData MakeUserData(const AmdGpu::Regs& regs, bool xess_jitter_enabled,
+                                      float xess_jitter_x, float xess_jitter_y,
+                                      u32 xess_input_width, u32 xess_input_height) {
     // TODO(roamic): Add support for multiple viewports and geometry shaders when ViewportIndex
     // is encountered and implemented in the recompiler.
     Shader::PushData push_data{};
@@ -28,6 +30,33 @@ static Shader::PushData MakeUserData(const AmdGpu::Regs& regs) {
     push_data.xscale = regs.viewport_control.xscale_enable ? regs.viewports[0].xscale : 1.f;
     push_data.yoffset = regs.viewport_control.yoffset_enable ? regs.viewports[0].yoffset : 0.f;
     push_data.yscale = regs.viewport_control.yscale_enable ? regs.viewports[0].yscale : 1.f;
+
+    // Apply XeSS jitter to projection matrix (viewport transform)
+    // This implements: ProjectionMatrix[2][0] += Jx * 2.0 / InputWidth
+    //                 ProjectionMatrix[2][1] -= Jy * 2.0 / InputHeight
+    // For PS4 viewport transform: xoffset += Jx * 2.0 / InputWidth * xscale
+    //                              yoffset -= Jy * 2.0 / InputHeight * yscale
+    //
+    // IMPORTANT: This jitter is applied ONLY to the viewport transform, NOT to any matrices
+    // used for motion vector calculation. Motion vectors use dummy textures (all zeros),
+    // which is correct - XeSS expects motion vectors without jitter compensation.
+    //
+    // InputWidth/InputHeight must match the actual internal render resolution (inputColor texture
+    // resolution) that XeSS receives, NOT the upscaled output resolution.
+    if (xess_jitter_enabled && xess_input_width > 0 && xess_input_height > 0) {
+        // Ensure jitter values are in valid range [-0.5, 0.5] (defensive check)
+        const float clamped_jitter_x = std::clamp(xess_jitter_x, -0.5f, 0.5f);
+        const float clamped_jitter_y = std::clamp(xess_jitter_y, -0.5f, 0.5f);
+        
+        // Calculate jitter scale based on input resolution (must match XeSS inputColor resolution)
+        const float jitter_scale_x = 2.0f / static_cast<float>(xess_input_width);
+        const float jitter_scale_y = 2.0f / static_cast<float>(xess_input_height);
+        
+        // Apply jitter to viewport offset (Y is negated for PS4 coordinate system)
+        push_data.xoffset += clamped_jitter_x * jitter_scale_x * push_data.xscale;
+        push_data.yoffset -= clamped_jitter_y * jitter_scale_y * push_data.yscale;
+    }
+
     return push_data;
 }
 
@@ -394,7 +423,8 @@ bool Rasterizer::BindResources(const Pipeline* pipeline) {
 
     // Bind resource buffers and textures.
     Shader::Backend::Bindings binding{};
-    push_data = MakeUserData(liverpool->regs);
+    push_data = MakeUserData(liverpool->regs, xess_jitter_enabled, xess_jitter_x, xess_jitter_y,
+                             xess_input_width, xess_input_height);
     for (const auto* stage : pipeline->GetStages()) {
         if (!stage) {
             continue;
@@ -1194,6 +1224,37 @@ void Rasterizer::UpdateViewportScissorState() const {
     auto& dynamic_state = scheduler.GetDynamicState();
     dynamic_state.SetViewports(viewports);
     dynamic_state.SetScissors(scissors);
+}
+
+void Rasterizer::SetXessJitter(float jitter_x, float jitter_y, u32 input_width, u32 input_height) {
+    // If input_width/height are 0, disable jitter
+    // This handles the case when XeSS is disabled or resolution is invalid
+    if (input_width == 0 || input_height == 0) {
+        xess_jitter_enabled = false;
+        xess_jitter_x = 0.0f;
+        xess_jitter_y = 0.0f;
+        xess_input_width = 0;
+        xess_input_height = 0;
+        return;
+    }
+    
+    // Validate jitter range [-0.5, 0.5] as required by XeSS
+    const float clamped_jitter_x = std::clamp(jitter_x, -0.5f, 0.5f);
+    const float clamped_jitter_y = std::clamp(jitter_y, -0.5f, 0.5f);
+    
+    // Store jitter state for use in MakeUserData() during draw calls
+    // IMPORTANT: input_width/input_height must match the actual internal render resolution
+    // (the resolution of the inputColor texture passed to XeSS), NOT the upscaled output resolution
+    xess_jitter_enabled = true;
+    xess_jitter_x = clamped_jitter_x;
+    xess_jitter_y = clamped_jitter_y;
+    xess_input_width = input_width;
+    xess_input_height = input_height;
+    
+    // Log jitter values for debugging (can be disabled in release builds)
+    // This helps verify jitter sequence stays in sync and values are correct
+    LOG_DEBUG(Render_Vulkan, "XeSS jitter set: ({:.4f}, {:.4f}) for resolution {}x{}",
+              clamped_jitter_x, clamped_jitter_y, input_width, input_height);
 }
 
 void Rasterizer::UpdateDepthStencilState() const {

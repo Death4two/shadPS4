@@ -364,13 +364,66 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     const vk::Extent2D image_size = {image.info.size.width, image.info.size.height};
     expected_ratio = static_cast<float>(image_size.width) / static_cast<float>(image_size.height);
 
+    // XeSS jitter synchronization and validation:
+    //
+    // Frame N rendering flow:
+    // 1. Frame N renders with jitter J_N (set in previous PrepareFrame call, BEFORE any draw calls)
+    // 2. PrepareFrame for frame N (called AFTER frame N rendering completes):
+    //    a. GetCurrentJitter() peeks at J_N (same jitter used for rendering frame N)
+    //    b. XeSS Render() calls GetJitterOffset() which returns J_N and advances to J_N+1
+    //    c. After XeSS Render(), set jitter J_N+1 in rasterizer for frame N+1 rendering
+    // This ensures: same jitter J_N used for both rendering frame N and XeSS upscaling frame N
+    //
+    // IMPORTANT NOTES:
+    // - Motion vectors: We use dummy motion vectors (all zeros), so they don't include jitter.
+    //   This is correct - XeSS expects motion vectors without jitter compensation.
+    // - Resolution: image_size must match the actual internal render resolution (inputColor texture
+    //   resolution) that XeSS receives, NOT the upscaled output resolution.
+    // - Jitter timing: SetXessJitter() must be called BEFORE any vkCmdDraw* commands for that frame.
+    //   Since PrepareFrame is called after rendering, we set jitter for the NEXT frame here.
+    // - Edge cases: If XeSS is disabled, jitter is disabled (SetXessJitter(0,0,0,0)).
+    //   If resolution changes, new resolution is passed to SetXessJitter().
+    // - Halton sequence: jitter_index increments exactly once per frame via GetJitterOffset().
+    //   Do not reset jitter_index unless XeSS is recreated (history is reset anyway).
+    float jitter_x = 0.0f, jitter_y = 0.0f;
+    if (xess_settings.enable) {
+        // Get the jitter that was used for rendering this frame (without advancing index)
+        // This same jitter will be passed to XeSS Render() for upscaling
+        xess_pass.GetCurrentJitter(jitter_x, jitter_y, image_size.width, image_size.height);
+        
+        // Verify jitter is in valid range [-0.5, 0.5] as required by XeSS
+        jitter_x = std::clamp(jitter_x, -0.5f, 0.5f);
+        jitter_y = std::clamp(jitter_y, -0.5f, 0.5f);
+        
+        // Verify resolution matches (defensive check - image_size should be the input resolution)
+        // This ensures jitter scale calculation in MakeUserData() uses correct dimensions
+        ASSERT_MSG(image_size.width > 0 && image_size.height > 0,
+                   "Invalid XeSS input resolution: {}x{}", image_size.width, image_size.height);
+    } else {
+        // Disable jitter when XeSS is not enabled
+        // This ensures no jitter is applied to projection matrix when XeSS is off
+        rasterizer->SetXessJitter(0.0f, 0.0f, 0, 0);
+    }
+
     // Apply upscaling - use FSR, XeSS, or NIS (FSR takes priority, then XeSS, then NIS)
     if (fsr_settings.enable) {
         image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
                                      fsr_settings, frame->is_hdr);
     } else if (xess_settings.enable) {
+        // XeSS Render() will use the same jitter J_N (it calls GetJitterOffset internally)
+        // GetJitterOffset() returns J_N and advances the index to J_N+1
         image_view = xess_pass.Render(cmdbuf, image_view, image.GetImage(), image_size,
                                       {frame->width, frame->height}, xess_settings, frame->is_hdr);
+        
+        // After XeSS Render() has advanced the jitter index, get the next jitter for frame N+1
+        // This ensures frame N+1 will render with J_N+1, matching what XeSS will use for frame N+1
+        float next_jitter_x, next_jitter_y;
+        xess_pass.GetCurrentJitter(next_jitter_x, next_jitter_y, image_size.width,
+                                    image_size.height);
+        next_jitter_x = std::clamp(next_jitter_x, -0.5f, 0.5f);
+        next_jitter_y = std::clamp(next_jitter_y, -0.5f, 0.5f);
+        rasterizer->SetXessJitter(next_jitter_x, next_jitter_y, image_size.width,
+                                   image_size.height);
     } else if (nis_settings.enable) {
         image_view = nis_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
                                      nis_settings, frame->is_hdr);

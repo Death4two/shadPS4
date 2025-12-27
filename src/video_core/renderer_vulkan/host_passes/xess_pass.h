@@ -37,6 +37,11 @@ public:
                          vk::Extent2D input_size, vk::Extent2D output_size, Settings settings,
                          bool hdr);
 
+    // Get current jitter offset for projection matrix application (without advancing index)
+    // Returns jitter in [-0.5, 0.5] range as required by XeSS
+    // This should be called before Render() to get the jitter that will be used for that frame
+    void GetCurrentJitter(float& jitter_x, float& jitter_y, u32 input_width, u32 input_height) const;
+
 private:
     struct Img {
         u8 id{};
